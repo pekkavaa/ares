@@ -883,13 +883,33 @@ struct CPU : Thread {
       u8* code;
     };
 
+    struct PoolRow {
+      Block* block;
+      u32 stateBits;
+    };
+
     struct Pool {
-      Block* blocks[1 << 6];
+      PoolRow* rows[1 << 6];
+    };
+
+    struct JITContext {
+      bool singleInstruction;
+      Context::Endian endian;
+      Context::Mode mode;
+      bool cop1Enabled;
+      bool floatingPointMode;
+      bool is64bit;
+
+      u32  stateBits; //the above state, compressed
+
+      auto update(const CPU& cpu) -> void;
+      auto toBits() const -> u32;
     };
 
     auto reset() -> void {
       pools.resize(1 << 21);  //2_MiB * sizeof(void*) == 16_MiB
       std::ranges::fill(pools, nullptr);
+      blockCache.clear();
     }
 
     auto invalidate(u32 address) -> void {
@@ -905,7 +925,7 @@ struct CPU : Thread {
       auto pool = pools[address >> 8 & 0x1fffff];
       if(!pool) return;
       memory::jitprotect(false);
-      pool->blocks[address >> 2 & 0x3f] = nullptr;
+      pool->rows[address >> 2 & 0x3f] = nullptr;
       memory::jitprotect(true);
       #endif
     }
@@ -921,10 +941,13 @@ struct CPU : Thread {
     }
 
     auto pool(u32 address) -> Pool*;
-    auto block(u64 vaddr, u32 address, bool singleInstruction = false) -> Block*;
+    auto blockCacheKey(u32 address, u32 state) -> u64;
+    auto block(u64 vaddr, u32 address) -> Block*;
 
-    auto emit(u64 vaddr, u32 address, bool singleInstruction = false) -> Block*;
+    auto emit(u64 vaddr, u32 address) -> Block*;
+    auto emitOverflowCheck() -> sljit_jump*;
     auto emitZeroClear(u32 n) -> void;
+    auto checkDualAllowed() -> bool;
     auto emitEXECUTE(u32 instruction) -> bool;
     auto emitSPECIAL(u32 instruction) -> bool;
     auto emitREGIMM(u32 instruction) -> bool;
@@ -936,7 +959,17 @@ struct CPU : Thread {
     bool callInstructionPrologue = false;
     bump_allocator allocator;
     std::vector<Pool*> pools;
+    std::unordered_map<u64, Block*> blockCache;
+    JITContext jitContext;
   } recompiler{*this};
+
+  auto arithmeticOverflowException() -> void {
+    exception.arithmeticOverflow();
+  }
+
+  auto reservedInstructionException() -> void {
+    exception.reservedInstruction();
+  }
 
   struct Disassembler {
     CPU& self;
