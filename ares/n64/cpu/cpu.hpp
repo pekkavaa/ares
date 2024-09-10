@@ -884,7 +884,25 @@ struct CPU : Thread {
     };
 
     struct Pool {
-      Block* blocks[1 << 6];
+      struct Row {
+        Block* block;
+        u32 tag;
+      };
+      Row rows[1 << 6];
+    };
+
+    struct JITContext {
+      bool singleInstruction;
+      Context::Endian endian;
+      Context::Mode mode;
+      bool cop1Enabled;
+      bool floatingPointMode;
+      bool is64bit;
+
+      u32  stateBits; //the above state, compressed
+
+      auto update(const Context& ctx, const CPU& cpu) -> void;
+      auto toBits() const -> u32;
     };
 
     auto reset() -> void {
@@ -921,10 +939,14 @@ struct CPU : Thread {
     }
 
     auto pool(u32 address) -> Pool*;
-    auto block(u64 vaddr, u32 address, bool singleInstruction = false) -> Block*;
+    auto computePoolKey(u32 address, u32 ctxHash) -> u32;
+    auto computePoolRow(u32 key) -> u32;
+    auto block(u64 vaddr, u32 address) -> Block*;
 
-    auto emit(u64 vaddr, u32 address, bool singleInstruction = false) -> Block*;
+    auto emit(u64 vaddr, u32 address) -> Block*;
+    auto emitOverflowCheck(reg temp) -> sljit_jump*;
     auto emitZeroClear(u32 n) -> void;
+    auto checkDualAllowed() -> bool;
     auto emitEXECUTE(u32 instruction) -> bool;
     auto emitSPECIAL(u32 instruction) -> bool;
     auto emitREGIMM(u32 instruction) -> bool;
@@ -936,6 +958,7 @@ struct CPU : Thread {
     bool callInstructionPrologue = false;
     bump_allocator allocator;
     vector<Pool*> pools;
+    JITContext jitContext;
   } recompiler{*this};
 
   struct Disassembler {
