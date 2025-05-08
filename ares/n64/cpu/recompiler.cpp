@@ -10,10 +10,13 @@ auto CPU::Recompiler::pool(u32 address) -> Pool* {
 }
 
 auto CPU::Recompiler::block(u64 vaddr, u32 address, bool singleInstruction) -> Block* {
-  if(auto block = pool(address)->blocks[address >> 2 & 0x3f]) return block;
+  if(u32 ofs = pool(address)->blocks[address >> 2 & 0x3f]) {
+    return offsetToBlock(ofs);
+  }
   auto block = emit(vaddr, address, singleInstruction);
   if(block) {
-    pool(address)->blocks[address >> 2 & 0x3f] = block;
+    u32 ofs = blockToOffset(block);
+    pool(address)->blocks[address >> 2 & 0x3f] = ofs;
     memory::jitprotect(true);
   }
   return block;

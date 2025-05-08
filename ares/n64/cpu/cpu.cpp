@@ -165,6 +165,7 @@ auto CPU::power(bool reset) -> void {
   if constexpr(Accuracy::CPU::Recompiler) {
     auto buffer = ares::Memory::FixedAllocator::get().tryAcquire(63_MiB);
     recompiler.allocator.resize(63_MiB, bump_allocator::executable, buffer);
+    recompiler.allocatorBuffer = buffer;
     recompiler.reset();
   }
 }

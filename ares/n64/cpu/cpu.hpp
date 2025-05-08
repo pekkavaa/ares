@@ -884,11 +884,11 @@ struct CPU : Thread {
     };
 
     struct Pool {
-      Block* blocks[1 << 6];
+      u32 blocks[1 << 6];
     };
 
     auto reset() -> void {
-      pools.reallocate(1 << 21);  //2_MiB * sizeof(void*) == 16_MiB
+      pools.reallocate(1 << 21);  //2_MiB * sizeof(u32) == 8_MiB
       pools.fill();
     }
 
@@ -922,6 +922,14 @@ struct CPU : Thread {
 
     auto pool(u32 address) -> Pool*;
     auto block(u64 vaddr, u32 address, bool singleInstruction = false) -> Block*;
+    auto offsetToBlock(u32 ofs) -> Block* {
+      return reinterpret_cast<Block*>(allocatorBuffer + ofs);
+    }
+
+    auto blockToOffset(Block* block) -> u32 {
+      auto diff = reinterpret_cast<u8*>(block) - allocatorBuffer;
+      return static_cast<u32>(diff);
+    }
 
     auto emit(u64 vaddr, u32 address, bool singleInstruction = false) -> Block*;
     auto emitZeroClear(u32 n) -> void;
@@ -935,6 +943,7 @@ struct CPU : Thread {
     bool enabled = false;
     bool callInstructionPrologue = false;
     bump_allocator allocator;
+    u8* allocatorBuffer = nullptr;
     vector<Pool*> pools;
   } recompiler{*this};
 
