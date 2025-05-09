@@ -884,8 +884,11 @@ struct CPU : Thread {
     };
 
     struct Pool {
-      Block* blocks[1<<6];
-      u32 tags[1<<6];
+      struct Row {
+        u32 ofs;
+        u32 tag;
+      };
+      Row rows[1<<6];
     };
 
     struct JITContext {
@@ -903,7 +906,7 @@ struct CPU : Thread {
     };
 
     auto reset() -> void {
-      pools.reallocate(1 << 21);  //2_MiB * sizeof(void*) == 16_MiB
+      pools.reallocate(1 << 21);  //2_MiB * sizeof(Pool) == 16_MiB
       pools.fill();
     }
 
@@ -940,6 +943,15 @@ struct CPU : Thread {
 
     auto emit(u64 vaddr, u32 address) -> Block*;
     auto emitOverflowCheck() -> sljit_jump*;
+    auto offsetToBlock(u32 ofs) -> Block* {
+      return reinterpret_cast<Block*>(allocatorBuffer + ofs);
+    }
+
+    auto blockToOffset(Block* block) -> u32 {
+      auto diff = reinterpret_cast<u8*>(block) - allocatorBuffer;
+      return static_cast<u32>(diff);
+    }
+
     auto emitZeroClear(u32 n) -> void;
     auto checkDualAllowed() -> bool;
     auto emitEXECUTE(u32 instruction) -> bool;
@@ -952,6 +964,7 @@ struct CPU : Thread {
     bool enabled = false;
     bool callInstructionPrologue = false;
     bump_allocator allocator;
+    u8* allocatorBuffer = nullptr; //owned by allocator
     vector<Pool*> pools;
     JITContext jitContext;
   } recompiler{*this};

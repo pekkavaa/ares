@@ -13,22 +13,22 @@ auto CPU::Recompiler::pool(u32 address) -> Pool* {
 auto CPU::Recompiler::block(u64 vaddr, u32 address) -> Block* {
   u32 tag = jitContext.stateBits;
   u32 idx = (address >> 2) & 0x3f;
-  assert(idx < sizeof(Pool::blocks)/sizeof(Pool::blocks[0]));
+  assert(idx < sizeof(Pool::rows)/sizeof(Pool::rows[0]));
 
   {
     Pool* p = pool(address);
-    if (p->tags[idx] == tag) {
-      if (auto block = p->blocks[idx]) {
-        return block;
+    if (p->rows[idx].tag == tag) {
+      // a valid block ofs can't be 0 because the pool is always allocated before blocks
+      if(u32 ofs = p->rows[idx].ofs) {
+        return offsetToBlock(ofs);
       }
     }
   }
 
   auto block = emit(vaddr, address);
   if (block) {
-    Pool* p = pool(address);
-    p->blocks[idx] = block;
-    p->tags[idx] = tag;
+    u32 ofs = blockToOffset(block);
+    pool(address)->rows[address >> 2 & 0x3f] = {.ofs = ofs, .tag = tag};
     memory::jitprotect(true);
   }
   return block;
