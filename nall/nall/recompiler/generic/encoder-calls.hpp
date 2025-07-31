@@ -76,4 +76,100 @@
     if constexpr(!std::is_void_v<R>) type |= SLJIT_ARG_RETURN(SLJIT_ARG_TYPE_W);
     sljit_emit_icall(compiler, SLJIT_CALL, type, SLJIT_IMM, SLJIT_FUNC_ADDR(imm64{function}.data));
   }
+
+  // System V AMD64 ABI compatible function calls.
+
+  // If we use SLJIT's regular SLJIT_CALL, function arguments are expected to be
+  // in registers R0, R1, R2, and R3. The concrete x64 registers chosen in SLJIT
+  // for R0 (RAX) and R2 (RDI) aren't compatible with the Sys V calling convention.
+  // Therefore SLJIT always generates extra instructions to move arguments placed
+  // in those registers to the System V ones.
+
+  // We can avoid that by placing the arguments in the correct registers directly,
+  // and setting the SLJIT_CALL_REG_ARG flag.
+  // Note that this is actually misuse of the API, since the flag is meant for
+  // functions compiled with SLJIT's custom ABI. Nevertheless, it allows us to
+  // skip the two unneeded mov instructions and works just fine on x64.
+  //
+  // Comparison of the two calling conventions:
+  //
+  //    arg#    0    1    2    3
+  //    Sys V: RDI, RSI, RDX, RCX
+  //    sljit: RAX, RSI, RDI, RCX
+  //
+
+  // This is TMP_REG1 - 1, because TMP_REG1 s already an index sljit's
+  // 'reg_map' table but the reg constructor passes it through SLJIT_R(i)
+  // that tries to convert from conceptual to an concrete index with i+1. 
+  // So we must use +1 instead of +2 to make it compatible with our 'reg' struct.
+  static const int tmp_reg1_index = SLJIT_NUMBER_OF_REGISTERS + 1;
+
+
+  template<typename T>
+  void setup_arg(const reg& dst, const T& src) {
+    if constexpr (std::is_same_v<T, mem>) {
+      // The 'mem' type represents a (base register, offset) pair
+      // Extract the original saved register index from the encoded first operand of mem.
+      sljit_s32 S = SLJIT_EXTRACT_REG(src.fst);
+      sljit_s32 i = SLJIT_NUMBER_OF_REGISTERS - S; // inverse of SLJIT_S(i)
+      // print("arg.fst=", arg.fst, ", S=", S, ", i=",i,"\n");
+      lea(dst, sreg(i), src.snd);
+    } else if constexpr (std::is_same_v<T, imm>) {
+      sljit_emit_op1(compiler, SLJIT_MOV32, dst.fst, dst.snd, src.fst, src.snd);
+    } else if constexpr (std::is_same_v<T, imm64>) {
+      sljit_emit_op1(compiler, SLJIT_MOV, dst.fst, dst.snd, SLJIT_IMM, src.data);
+    } else {
+      static_assert(false, "unknown function argument type");
+    }
+  }
+
+  template<typename C, typename R, typename... P>
+  void call_args(R (C::*function)(P...)) {
+    call(function);
+  }
+
+  template<typename C, typename V, typename... P, typename P0>
+  void call_args(V (C::*function)(P...), const P0& arg1) {
+    setup_arg(reg(1), arg1);
+
+    static_assert(sizeof...(P) <= 3);
+    sljit_s32 type = SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 1);
+    type |= SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 2);
+    if constexpr(!std::is_void_v<V>) type |= SLJIT_ARG_RETURN(SLJIT_ARG_TYPE_W);
+    sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_R2, 0, SLJIT_S0, 0);
+    sljit_emit_icall(compiler, SLJIT_CALL_REG_ARG, type, SLJIT_IMM, SLJIT_FUNC_ADDR(imm64{function}.data));
+  }
+
+  template<typename C, typename V, typename... P, typename P0, typename P1>
+  void call_args(V (C::*function)(P...), const P0& arg1, const P1& arg2) {
+    setup_arg(reg(1), arg1);
+    setup_arg(reg(tmp_reg1_index), arg2);
+
+    static_assert(sizeof...(P) <= 3);
+    sljit_s32 type = SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 1);
+    type |= SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 2);
+    type |= SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 3);
+    if constexpr(!std::is_void_v<V>) type |= SLJIT_ARG_RETURN(SLJIT_ARG_TYPE_W);
+
+    sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_R2, 0, SLJIT_S0, 0);
+    sljit_emit_icall(compiler, SLJIT_CALL_REG_ARG, type, SLJIT_IMM, SLJIT_FUNC_ADDR(imm64{function}.data));
+  }
+
+  template<typename C, typename V, typename... P, typename P0, typename P1, typename P2>
+  void call_args(V (C::*function)(P...), const P0& arg1, const P1& arg2, const P2& arg3) {
+
+    setup_arg(reg(1), arg1);
+    setup_arg(reg(tmp_reg1_index), arg2);
+    setup_arg(reg(3), arg3);
+
+    static_assert(sizeof...(P) <= 3);
+    sljit_s32 type = SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 1);
+    type |= SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 2);
+    type |= SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 3);
+    type |= SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 4);
+    if constexpr(!std::is_void_v<V>) type |= SLJIT_ARG_RETURN(SLJIT_ARG_TYPE_W);
+
+    sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_R2, 0, SLJIT_S0, 0);
+    sljit_emit_icall(compiler, SLJIT_CALL_REG_ARG, type, SLJIT_IMM, SLJIT_FUNC_ADDR(imm64{function}.data));
+  }
 //};
