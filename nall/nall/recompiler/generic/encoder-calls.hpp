@@ -83,8 +83,8 @@
   // If we use SLJIT's regular SLJIT_CALL, function arguments are expected to be
   // in registers R0, R1, R2, and R3. The concrete x64 registers chosen in SLJIT
   // for R0 (RAX) and R2 (RDI) aren't compatible with the Sys V calling convention.
-  // Therefore SLJIT always generates extra instructions to move arguments placed
-  // in those registers to the System V ones.
+  // Therefore SLJIT always generates extra instructions to move arguments to the
+  // to the registers expected by the callee.
 
   // We can avoid that by placing the arguments in the correct registers directly,
   // and setting the SLJIT_CALL_REG_ARG flag.
@@ -92,11 +92,11 @@
   // functions compiled with SLJIT's custom ABI. Nevertheless, it allows us to
   // skip the two unneeded mov instructions and works just fine on x64.
   //
-  // Comparison of the two calling conventions:
+  // Argument placement in the two calling conventions:
   //
   //    arg#    0    1    2    3
   //    Sys V: RDI, RSI, RDX, RCX
-  //    sljit: RAX, RSI, RDI, RCX
+  //    SLJIT: RAX, RSI, RDI, RCX
   //
 
   // Note that arg2_reg refers to TMP_REG1 since it maps to RDX, but we store
