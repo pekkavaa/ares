@@ -19,6 +19,29 @@ auto CPU::Recompiler::block(u64 vaddr, u32 address, bool singleInstruction) -> B
   return block;
 }
 
+auto CPU::Recompiler::dumpBlock(u64 vaddr, const Block* block, u32 size) -> void {
+  // Create blocks directory if it doesn't exist
+  string directory = "blocks";
+  if(!directory::exists(directory)) {
+    directory::create(directory);
+  }
+  
+  // Create filename with hex address (16 digits, leading zeros)
+  string filename = string{directory, "/", hex(vaddr, 16L), ".bin"};
+  
+  if (FILE* fp = fopen(filename, "wb")) {
+    fwrite(block->code, size, 1, fp);
+    fclose(fp);
+  }
+  // Open file for writing
+  // if(auto f = file.open(filename, file::mode::write)) {
+  //   // Write the compiled block data
+  //   f.write(block->code, block->size);
+  //   f.close();
+  // }
+}
+
+
 #define IpuBase        offsetof(IPU, r[16])
 #define IpuReg(r)      sreg(1), offsetof(IPU, r) - IpuBase
 #define PipelineReg(x) mem(sreg(0), offsetof(CPU, pipeline) + offsetof(Pipeline, x))

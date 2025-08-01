@@ -920,6 +920,7 @@ struct CPU : Thread {
       invalidatePool(address + length - 1);
     }
 
+    auto dumpBlock(u64 vaddr, const Block* block, u32 size) -> void;
     auto pool(u32 address) -> Pool*;
     auto block(u64 vaddr, u32 address, bool singleInstruction = false) -> Block*;
 
