@@ -78,13 +78,13 @@
   }
 
   #if 0
-  // SLJIT's generic SLJIT_CALL convention, compatible with any ABI
+  // SLJIT's generic SLJIT_CALL convention, compatible with any ABI.
+
+  static constexpr int call_type = SLJIT_CALL;
+  static constexpr int arg0_reg = 0;
   static constexpr int arg1_reg = 1;
   static constexpr int arg2_reg = 2;
   static constexpr int arg3_reg = 3;
-
-  static constexpr int arg0_reg_name = SLJIT_R0;
-  static constexpr int call_type = SLJIT_CALL;
   #else
   // System V AMD64 ABI compatible function calls.
 
@@ -107,16 +107,15 @@
   //    sljit: RAX, RSI, RDI, RCX
   //
 
-  // The second argument is TMP_REG1 - 1, because TMP_REG1 s already an
-  // index sljit's 'reg_map' table but the reg constructor passes it
-  // through SLJIT_R(i) that tries to convert from conceptual to an concrete
-  // index with i+1. We use +1 instead of +2 to make it compatible with the 'reg' struct.
-  static constexpr int arg1_reg = 1;
-  static constexpr int arg2_reg = SLJIT_NUMBER_OF_REGISTERS + 1;
-  static constexpr int arg3_reg = 3;
+  // Note that arg2_reg refers to TMP_REG1 since it maps to RDX, but we store
+  // TMP_REG1 - 1 instead so that it works when passed through SLJIT_R(i) when
+  // setup_arg() calls the reg(TMP_REG1 - 1) constructor.
 
-  static constexpr int arg0_reg_name = SLJIT_R2;
   static constexpr int call_type = SLJIT_CALL_REG_ARG;
+  static constexpr int arg0_reg = 2;                              // RDI
+  static constexpr int arg1_reg = 1;                              // RSI
+  static constexpr int arg2_reg = SLJIT_NUMBER_OF_REGISTERS + 1;  // RDX
+  static constexpr int arg3_reg = 3;                              // RCX
   #endif
 
   template<typename T>
@@ -150,7 +149,7 @@
     sljit_s32 type = SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 1);
     type |= SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 2);
     if constexpr(!std::is_void_v<V>) type |= SLJIT_ARG_RETURN(SLJIT_ARG_TYPE_W);
-    sljit_emit_op1(compiler, SLJIT_MOV, arg0_reg_name, 0, SLJIT_S0, 0);
+    sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_R(arg0_reg), 0, SLJIT_S0, 0);
     sljit_emit_icall(compiler, call_type, type, SLJIT_IMM, SLJIT_FUNC_ADDR(imm64{function}.data));
   }
 
@@ -165,7 +164,7 @@
     type |= SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 3);
     if constexpr(!std::is_void_v<V>) type |= SLJIT_ARG_RETURN(SLJIT_ARG_TYPE_W);
 
-    sljit_emit_op1(compiler, SLJIT_MOV, arg0_reg_name, 0, SLJIT_S0, 0);
+    sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_R(arg0_reg), 0, SLJIT_S0, 0);
     sljit_emit_icall(compiler, call_type, type, SLJIT_IMM, SLJIT_FUNC_ADDR(imm64{function}.data));
   }
 
@@ -183,7 +182,7 @@
     type |= SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 4);
     if constexpr(!std::is_void_v<V>) type |= SLJIT_ARG_RETURN(SLJIT_ARG_TYPE_W);
 
-    sljit_emit_op1(compiler, SLJIT_MOV, arg0_reg_name, 0, SLJIT_S0, 0);
+    sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_R(arg0_reg), 0, SLJIT_S0, 0);
     sljit_emit_icall(compiler, call_type, type, SLJIT_IMM, SLJIT_FUNC_ADDR(imm64{function}.data));
   }
 //};
