@@ -77,6 +77,15 @@
     sljit_emit_icall(compiler, SLJIT_CALL, type, SLJIT_IMM, SLJIT_FUNC_ADDR(imm64{function}.data));
   }
 
+  #if 0
+  // SLJIT's generic SLJIT_CALL convention, compatible with any ABI
+  static constexpr int arg1_reg = 1;
+  static constexpr int arg2_reg = 2;
+  static constexpr int arg3_reg = 3;
+
+  static constexpr int arg0_reg_name = SLJIT_R0;
+  static constexpr int call_type = SLJIT_CALL;
+  #else
   // System V AMD64 ABI compatible function calls.
 
   // If we use SLJIT's regular SLJIT_CALL, function arguments are expected to be
@@ -108,6 +117,7 @@
 
   static constexpr int arg0_reg_name = SLJIT_R2;
   static constexpr int call_type = SLJIT_CALL_REG_ARG;
+  #endif
 
   template<typename T>
   void setup_arg(const reg& dst, const T& src) {
