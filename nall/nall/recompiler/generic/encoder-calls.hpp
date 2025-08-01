@@ -98,12 +98,16 @@
   //    sljit: RAX, RSI, RDI, RCX
   //
 
-  // This is TMP_REG1 - 1, because TMP_REG1 s already an index sljit's
-  // 'reg_map' table but the reg constructor passes it through SLJIT_R(i)
-  // that tries to convert from conceptual to an concrete index with i+1. 
-  // So we must use +1 instead of +2 to make it compatible with our 'reg' struct.
-  static const int tmp_reg1_index = SLJIT_NUMBER_OF_REGISTERS + 1;
+  // The second argument is TMP_REG1 - 1, because TMP_REG1 s already an
+  // index sljit's 'reg_map' table but the reg constructor passes it
+  // through SLJIT_R(i) that tries to convert from conceptual to an concrete
+  // index with i+1. We use +1 instead of +2 to make it compatible with the 'reg' struct.
+  static constexpr int arg1_reg = 1;
+  static constexpr int arg2_reg = SLJIT_NUMBER_OF_REGISTERS + 1;
+  static constexpr int arg3_reg = 3;
 
+  static constexpr int arg0_reg_name = SLJIT_R2;
+  static constexpr int call_type = SLJIT_CALL_REG_ARG;
 
   template<typename T>
   void setup_arg(const reg& dst, const T& src) {
@@ -130,20 +134,20 @@
 
   template<typename C, typename V, typename... P, typename P0>
   void call_args(V (C::*function)(P...), const P0& arg1) {
-    setup_arg(reg(1), arg1);
+    setup_arg(reg(arg1_reg), arg1);
 
     static_assert(sizeof...(P) <= 3);
     sljit_s32 type = SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 1);
     type |= SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 2);
     if constexpr(!std::is_void_v<V>) type |= SLJIT_ARG_RETURN(SLJIT_ARG_TYPE_W);
-    sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_R2, 0, SLJIT_S0, 0);
-    sljit_emit_icall(compiler, SLJIT_CALL_REG_ARG, type, SLJIT_IMM, SLJIT_FUNC_ADDR(imm64{function}.data));
+    sljit_emit_op1(compiler, SLJIT_MOV, arg0_reg_name, 0, SLJIT_S0, 0);
+    sljit_emit_icall(compiler, call_type, type, SLJIT_IMM, SLJIT_FUNC_ADDR(imm64{function}.data));
   }
 
   template<typename C, typename V, typename... P, typename P0, typename P1>
   void call_args(V (C::*function)(P...), const P0& arg1, const P1& arg2) {
-    setup_arg(reg(1), arg1);
-    setup_arg(reg(tmp_reg1_index), arg2);
+    setup_arg(reg(arg1_reg), arg1);
+    setup_arg(reg(arg2_reg), arg2);
 
     static_assert(sizeof...(P) <= 3);
     sljit_s32 type = SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 1);
@@ -151,16 +155,16 @@
     type |= SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 3);
     if constexpr(!std::is_void_v<V>) type |= SLJIT_ARG_RETURN(SLJIT_ARG_TYPE_W);
 
-    sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_R2, 0, SLJIT_S0, 0);
-    sljit_emit_icall(compiler, SLJIT_CALL_REG_ARG, type, SLJIT_IMM, SLJIT_FUNC_ADDR(imm64{function}.data));
+    sljit_emit_op1(compiler, SLJIT_MOV, arg0_reg_name, 0, SLJIT_S0, 0);
+    sljit_emit_icall(compiler, call_type, type, SLJIT_IMM, SLJIT_FUNC_ADDR(imm64{function}.data));
   }
 
   template<typename C, typename V, typename... P, typename P0, typename P1, typename P2>
   void call_args(V (C::*function)(P...), const P0& arg1, const P1& arg2, const P2& arg3) {
 
-    setup_arg(reg(1), arg1);
-    setup_arg(reg(tmp_reg1_index), arg2);
-    setup_arg(reg(3), arg3);
+    setup_arg(reg(arg1_reg), arg1);
+    setup_arg(reg(arg2_reg), arg2);
+    setup_arg(reg(arg3_reg), arg3);
 
     static_assert(sizeof...(P) <= 3);
     sljit_s32 type = SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 1);
@@ -169,7 +173,7 @@
     type |= SLJIT_ARG_VALUE(SLJIT_ARG_TYPE_W, 4);
     if constexpr(!std::is_void_v<V>) type |= SLJIT_ARG_RETURN(SLJIT_ARG_TYPE_W);
 
-    sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_R2, 0, SLJIT_S0, 0);
-    sljit_emit_icall(compiler, SLJIT_CALL_REG_ARG, type, SLJIT_IMM, SLJIT_FUNC_ADDR(imm64{function}.data));
+    sljit_emit_op1(compiler, SLJIT_MOV, arg0_reg_name, 0, SLJIT_S0, 0);
+    sljit_emit_icall(compiler, call_type, type, SLJIT_IMM, SLJIT_FUNC_ADDR(imm64{function}.data));
   }
 //};
