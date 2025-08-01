@@ -77,15 +77,7 @@
     sljit_emit_icall(compiler, SLJIT_CALL, type, SLJIT_IMM, SLJIT_FUNC_ADDR(imm64{function}.data));
   }
 
-  #if 0
-  // SLJIT's generic SLJIT_CALL convention, compatible with any ABI.
-
-  static constexpr int call_type = SLJIT_CALL;
-  static constexpr int arg0_reg = 0;
-  static constexpr int arg1_reg = 1;
-  static constexpr int arg2_reg = 2;
-  static constexpr int arg3_reg = 3;
-  #else
+  #if defined(ABI_SYSTEMV) and defined(ARCHITECTURE_AMD64)
   // System V AMD64 ABI compatible function calls.
 
   // If we use SLJIT's regular SLJIT_CALL, function arguments are expected to be
@@ -116,6 +108,14 @@
   static constexpr int arg1_reg = 1;                              // RSI
   static constexpr int arg2_reg = SLJIT_NUMBER_OF_REGISTERS + 1;  // RDX
   static constexpr int arg3_reg = 3;                              // RCX
+  #else
+  // SLJIT's generic SLJIT_CALL convention, compatible with any ABI.
+
+  static constexpr int call_type = SLJIT_CALL;
+  static constexpr int arg0_reg = 0;
+  static constexpr int arg1_reg = 1;
+  static constexpr int arg2_reg = 2;
+  static constexpr int arg3_reg = 3;
   #endif
 
   template<typename T>
