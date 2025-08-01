@@ -547,6 +547,7 @@ struct RSP : Thread, Memory::RCP<RSP> {
 
     auto block(u12 address) -> Block*;
 
+    auto dumpBlock(u64 vaddr, const Block* block, u32 size) -> void;
     auto emit(u12 address) -> Block*;
     auto emitEXECUTE(u32 instruction) -> bool;
     auto emitSPECIAL(u32 instruction) -> bool;

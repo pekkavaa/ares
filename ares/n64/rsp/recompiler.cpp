@@ -58,6 +58,21 @@ auto RSP::Recompiler::block(u12 address) -> Block* {
   throw;  //should never occur
 }
 
+auto RSP::Recompiler::dumpBlock(u64 vaddr, const Block* block, u32 size) -> void {
+  string directory = "rspblocks";
+  if(!directory::exists(directory)) {
+    directory::create(directory);
+  }
+  
+  string filename = string{directory, "/", hex(vaddr, 16L), ".bin"};
+  
+  if (FILE* fp = fopen(filename, "wb")) {
+    fwrite(block->code, size, 1, fp);
+    fclose(fp);
+  }
+}
+
+
 #define IpuReg(r) sreg(1), offsetof(IPU, r)
 #define VuReg(r)  sreg(2), offsetof(VU, r)
 #define R0        IpuReg(r[0])
