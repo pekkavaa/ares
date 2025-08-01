@@ -139,8 +139,17 @@ auto RSP::Recompiler::emit(u12 address) -> Block* {
   pipeline.clocks = 0;
 
   memory::jitprotect(false);
+  #if 0
+  u32 size=0;
+  block->code = endFunction2(&size);
+  block->size = address - start;
+  static int counter;
+  dumpBlock(counter, block, size);
+  counter++;
+  #else
   block->code = endFunction();
   block->size = address - start;
+  #endif
   block->pipeline = pipeline;
 
 //print(hex(PC, 8L), " ", instructions, " ", size(), "\n");

@@ -110,7 +110,15 @@ auto CPU::Recompiler::emit(u64 vaddr, u32 address, bool singleInstruction) -> Bl
 
   memory::jitprotect(false);
   auto block = (Block*)allocator.acquire(sizeof(Block));
+  #if 0
+  u32 size=0;
+  block->code = endFunction2(&size);
+  static int counter;
+  dumpBlock(counter, block, size);
+  counter++;
+  #else
   block->code = endFunction();
+  #endif
 
 //print(hex(PC, 8L), " ", instructions, " ", size(), "\n");
   return block;
