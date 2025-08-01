@@ -720,8 +720,8 @@ auto CPU::Recompiler::emitSPECIAL(u32 instruction) -> bool {
 
   //JR Rs
   case 0x08: {
-    lea(reg(1), Rs);
-    call_args(&CPU::JR);
+    // lea(reg(1), Rs);
+    call_args(&CPU::JR, mem(Rs));
     return 1;
   }
 
