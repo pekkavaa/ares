@@ -45,6 +45,7 @@ auto CPU::Recompiler::emit(u64 vaddr, u32 address, bool singleInstruction) -> Bl
   bool hasBranched = 0;
   int numInsn = 0;
   constexpr u32 branchToSelf = 0x1000'ffff;  //beq 0,0,<pc>
+  constexpr u32 emuxIdle = 0x00e7'7cb6; //tne a3,a3,0x1f2
   u32 jumpToSelf = 2 << 26 | vaddr >> 2 & 0x3ff'ffff;  //j <pc>
   while(true) {
     u32 instruction = bus.read<Word>(address, thread, "Ares Recompiler");
@@ -65,7 +66,7 @@ auto CPU::Recompiler::emit(u64 vaddr, u32 address, bool singleInstruction) -> Bl
     }
     numInsn++;
     bool branched = emitEXECUTE(instruction);
-    if(unlikely(instruction == branchToSelf || instruction == jumpToSelf)) {
+    if(unlikely(instruction == branchToSelf || instruction == jumpToSelf || instruction == emuxIdle)) {
       //accelerate idle loops
       callf(&CPU::step, imm(64 * 2));
     } else {
