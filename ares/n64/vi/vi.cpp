@@ -131,7 +131,10 @@ auto VI::main() -> void {
   }
 }
 
+u64 vi_refresh_count = 0;
+
 auto VI::refresh() -> void {
+  vi_refresh_count++;
   #if defined(VULKAN)
   if(vulkan.enable && gpuOutputValid) {
     const u8* rgba = nullptr;

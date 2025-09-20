@@ -881,6 +881,7 @@ struct CPU : Thread {
       }
 
       u8* code;
+      u32 size;
     };
 
     struct Pool {

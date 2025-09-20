@@ -10,28 +10,50 @@ auto CPU::Recompiler::pool(u32 address) -> Pool* {
   return pool;
 }
 
+#include <cstdio>
+
+void traceBlock(u64 clock, u64 vaddr, u32 address, u32 tag, u32 blockSize) {
+  FILE* fp = fopen("trace.txt", "a");
+  if (fp) {
+    fprintf(fp, "%lu,0x%08lx,0x%08x,0x%08x,%u\n", clock, vaddr, address, tag, blockSize);
+    fclose(fp);
+  }
+}
+
 auto CPU::Recompiler::block(u64 vaddr, u32 address) -> Block* {
   u32 tag = jitContext.stateBits;
+
+  
   u32 idx = (address >> 2) & 0x3f;
   assert(idx < sizeof(Pool::blocks)/sizeof(Pool::blocks[0]));
+
+  Block* bp = nullptr;
 
   {
     Pool* p = pool(address);
     if (p->tags[idx] == tag) {
       if (auto block = p->blocks[idx]) {
-        return block;
+        bp = block;
       }
     }
   }
 
-  auto block = emit(vaddr, address);
-  if (block) {
-    Pool* p = pool(address);
-    p->blocks[idx] = block;
-    p->tags[idx] = tag;
-    memory::jitprotect(true);
+  if (!bp) {
+    auto block = emit(vaddr, address);
+    if (block) {
+      Pool* p = pool(address);
+      p->blocks[idx] = block;
+      p->tags[idx] = tag;
+      memory::jitprotect(true);
+    }
+    bp = block;
   }
-  return block;
+
+  extern u64 vi_refresh_count;
+
+  traceBlock(vi_refresh_count, vaddr, address, tag, bp->size);
+  return bp;
+
 }
 
 auto CPU::Recompiler::JITContext::update(const CPU& cpu) -> void {
@@ -48,10 +70,10 @@ auto CPU::Recompiler::JITContext::update(const CPU& cpu) -> void {
 auto CPU::Recompiler::JITContext::toBits() const -> u32 {
   u32 bits = 1; // first bit always set to make 0 invalid
   bits |= singleInstruction ? 1 << 1 : 0;
-  // bits |= endian ? 1 << 2 : 0;
+  bits |= endian ? 1 << 2 : 0;
   bits |= (mode & 0x03) << 3;
-  // bits |= cop1Enabled ? 1 << 4 : 0;
-  // bits |= floatingPointMode ? 1 << 5 : 0;
+  bits |= cop1Enabled ? 1 << 4 : 0;
+  bits |= floatingPointMode ? 1 << 5 : 0;
   bits |= is64bit ? 1 << 6 : 0;
   return bits;
 }
@@ -125,7 +147,9 @@ auto CPU::Recompiler::emit(u64 vaddr, u32 address) -> Block* {
 
   memory::jitprotect(false);
   auto block = (Block*)allocator.acquire(sizeof(Block));
+  u32 availBefore = allocator.available();
   block->code = endFunction();
+  block->size = availBefore - allocator.available();
 
 //print(hex(PC, 8L), " ", instructions, " ", size(), "\n");
   return block;
