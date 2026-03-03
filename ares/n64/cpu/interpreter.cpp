@@ -11,6 +11,7 @@
 #define RDn    (OP >> 11 & 31)
 #define RTn    (OP >> 16 & 31)
 #define RSn    (OP >> 21 & 31)
+#define CODE (instruction >> 6 & 1023)
 #define FD     (OP >>  6 & 31)
 #define FS     (OP >> 11 & 31)
 #define FT     (OP >> 16 & 31)
@@ -143,7 +144,7 @@ auto CPU::decoderSPECIAL(u32 instruction) -> void {
   op(0x33, TLTU, RS, RT);
   op(0x34, TEQ, RS, RT);
   br(0x35, INVALID);
-  op(0x36, TNE, RS, RT);
+  op(0x36, TNE, RS, RT, CODE);
   br(0x37, INVALID);
   op(0x38, DSLL, RD, RT, SA);
   br(0x39, INVALID);
@@ -383,6 +384,7 @@ auto CPU::INVALID() -> void {
 #undef RDn
 #undef RTn
 #undef RSn
+#undef CODE
 #undef FD
 #undef FS
 #undef FT

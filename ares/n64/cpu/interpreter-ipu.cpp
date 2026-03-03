@@ -1164,8 +1164,9 @@ auto CPU::TLTU(cr64& rs, cr64& rt) -> void {
   if(rs.u64 < rt.u64) exception.trap();
 }
 
-auto CPU::TNE(cr64& rs, cr64& rt) -> void {
+auto CPU::TNE(cr64& rs, cr64& rt, u32 code) -> void {
   if(rs.u64 != rt.u64) exception.trap();
+  // EMUX(rt, code); // EMUX nop is now implemented directly in recompiler's emit loop
 }
 
 auto CPU::TNEI(cr64& rs, s16 imm) -> void {

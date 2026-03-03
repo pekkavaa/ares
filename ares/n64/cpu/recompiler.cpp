@@ -101,6 +101,7 @@ auto CPU::Recompiler::emit(u64 vaddr, u32 address, bool singleInstruction) -> Bl
 #define Rdn (instruction >> 11 & 31)
 #define Rtn (instruction >> 16 & 31)
 #define Rsn (instruction >> 21 & 31)
+#define CODE (instruction >> 6 & 1023)
 #define Fdn (instruction >>  6 & 31)
 #define Fsn (instruction >> 11 & 31)
 #define Ftn (instruction >> 16 & 31)
@@ -888,7 +889,8 @@ auto CPU::Recompiler::emitSPECIAL(u32 instruction) -> bool {
 
   //TNE Rs,Rt
   case 0x36: {
-    callf(&CPU::TNE, mem(Rs), mem(Rt));
+    // FIXME: TNE has a side effect on RSP? should use a different COP0-based NOP.
+    callf(&CPU::TNE, mem(Rs), mem(Rt), imm(CODE));
     return 0;
   }
 
@@ -1779,6 +1781,7 @@ auto CPU::Recompiler::emitCOP2(u32 instruction) -> bool {
 #undef Rdn
 #undef Rtn
 #undef Rsn
+#undef CODE
 #undef Fdn
 #undef Fsn
 #undef Ftn

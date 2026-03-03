@@ -519,10 +519,11 @@ struct CPU : Thread {
   auto TLTI(cr64& rs, s16 imm) -> void;
   auto TLTIU(cr64& rs, s16 imm) -> void;
   auto TLTU(cr64& rs, cr64& rt) -> void;
-  auto TNE(cr64& rs, cr64& rt) -> void;
+  auto TNE(cr64& rs, cr64& rt, u32 code) -> void;
   auto TNEI(cr64& rs, s16 imm) -> void;
   auto XOR(r64& rd, cr64& rs, cr64& rt) -> void;
   auto XORI(r64& rt, cr64& rs, u16 imm) -> void;
+  auto EMUX(cr64& rt, s16 imm) -> void;
 
   struct SCC {
     //0
